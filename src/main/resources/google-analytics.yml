@@ -1,0 +1,24 @@
+name: "Google Analytics"
+iconUrl: "https://static.dotcms.com/assets/icons/apps/saml.png"
+allowExtraParameters: true
+description: "Google Analytics integration"
+
+params:
+  applicationName:
+    value: ""
+    hidden: false
+    type: "STRING"
+    label: "Application Name"
+    hint: "Application name"
+    required: true
+  jsonKeyFile:
+    value: ""
+    hidden: true
+    type: "STRING"
+    label: "Json Key File"
+    hint: "Paste here the json key file"
+    required: true
+
+
+
+
