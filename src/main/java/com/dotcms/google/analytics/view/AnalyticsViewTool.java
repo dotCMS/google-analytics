@@ -7,6 +7,8 @@ import com.dotcms.google.analytics.service.GoogleAnalyticsService;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.util.Logger;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.services.analytics.Analytics;
 import com.google.api.services.analytics.model.GaData;
 import org.apache.velocity.context.Context;
 import org.apache.velocity.tools.view.context.ViewContext;
@@ -34,8 +36,26 @@ public class AnalyticsViewTool implements ViewTool {
         this.request = context.getRequest();
         this.ctx = context.getVelocityContext();
     }
+
     public AnalyticsViewTool() {
 
+    }
+
+    /**
+     * Get first profile id available
+     * @return String
+     * @throws IOException
+     */
+    public String findFirstProfile() throws IOException {
+
+        final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
+        final String siteId = currentHost.getIdentifier();
+
+        final GoogleAnalyticsService googleAnalyticsService =
+                this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
+                        key -> getGoogleAnalyticsService(siteId));
+
+        return googleAnalyticsService.getFirstProfileId();
     }
 
     /**
@@ -45,9 +65,33 @@ public class AnalyticsViewTool implements ViewTool {
      * @return A default AnalyticsRequest instance that can be customized as needed.
      */
     public final AnalyticsRequest createAnalyticsRequest(final String profileId) {
+
         return new AnalyticsRequest(profileId);
     }
 
+    /**
+     * Executes an analytics query using the provided request.
+     *
+     * @param analyticsRequest The AnalyticsRequest instance representing the desired query.
+     * @return A GaData instances containing the results of the query.
+     */
+    public final GaData query(final AnalyticsRequest analyticsRequest) {
+
+        final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
+        final String siteId = currentHost.getIdentifier();
+
+        final GoogleAnalyticsService googleAnalyticsService =
+                this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
+                        key -> getGoogleAnalyticsService(siteId));
+
+        return googleAnalyticsService.query(analyticsRequest);
+    }
+
+    /**
+     * Get the results for the past week for the first profile associated with the current host.
+     * @return GaData
+     * @throws IOException
+     */
     public GaData getPastWeekResultsWithFirstProfile() throws IOException {
 
         final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
