@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * This class provides a service to interact with Google Analytics.
@@ -144,9 +145,8 @@ public class GoogleAnalyticsService {
             request.setFiltersExpression(analyticsRequest.getFilters());
         }
 
-        if (analyticsRequest.getStartIndex() >= 1) {
-            // todo: it seems this should be replace for the next page token.
-            //get = get.setStartIndex(analyticsRequest.getStartIndex());
+        if (Objects.nonNull(analyticsRequest.getPageToken())) {
+            request.setPageToken(analyticsRequest.getPageToken());
         }
 
         if (analyticsRequest.getMaxResults() >= 1) {
