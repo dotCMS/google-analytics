@@ -7,9 +7,7 @@ import com.dotcms.google.analytics.service.GoogleAnalyticsService;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.util.Logger;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.services.analytics.Analytics;
-import com.google.api.services.analytics.model.GaData;
+import com.google.api.services.analyticsreporting.v4.model.GetReportsResponse;
 import org.apache.velocity.context.Context;
 import org.apache.velocity.tools.view.context.ViewContext;
 import org.apache.velocity.tools.view.tools.ViewTool;
@@ -73,9 +71,9 @@ public class AnalyticsViewTool implements ViewTool {
      * Executes an analytics query using the provided request.
      *
      * @param analyticsRequest The AnalyticsRequest instance representing the desired query.
-     * @return A GaData instances containing the results of the query.
+     * @return A GetReportsResponse instances containing the results of the query.
      */
-    public final GaData query(final AnalyticsRequest analyticsRequest) {
+    public final GetReportsResponse query(final AnalyticsRequest analyticsRequest) throws IOException {
 
         final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
         final String siteId = currentHost.getIdentifier();
@@ -89,10 +87,10 @@ public class AnalyticsViewTool implements ViewTool {
 
     /**
      * Get the results for the past week for the first profile associated with the current host.
-     * @return GaData
+     * @return GetReportsResponse
      * @throws IOException
      */
-    public GaData getPastWeekResultsWithFirstProfile() throws IOException {
+    public GetReportsResponse getPastWeekResultsWithFirstProfile() throws IOException {
 
         final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
         final String siteId = currentHost.getIdentifier();

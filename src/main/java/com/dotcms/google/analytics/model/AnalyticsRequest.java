@@ -80,6 +80,11 @@ public class AnalyticsRequest {
     private int startIndex;
 
     /**
+     * The page token to retrieve the next page of results. The default is to retrieve the first page of results.
+     */
+    private String pageToken;
+
+    /**
      * Maximum number of results to retrieve from the API. The default is 1,000 but can be set up to 10,000.
      */
     private int maxResults;
@@ -245,19 +250,23 @@ public class AnalyticsRequest {
     }
 
     /**
+     * @deprecated Use {@link #getPageToken()} instead.
      * Gets the value of the startIndex property.
      *
      * @return The value of startIndex.
      */
+    @Deprecated
     public final int getStartIndex() {
         return startIndex;
     }
 
     /**
+     * @deprecated Use {@link #setPageToken()} instead.
      * Sets the value of the startIndex property.
      *
      * @param newStartIndex The value of startIndex.
      */
+    @Deprecated
     public final void setStartIndex(final int newStartIndex) {
         startIndex = newStartIndex;
     }
@@ -278,5 +287,13 @@ public class AnalyticsRequest {
      */
     public final void setMaxResults(final int newMaxResults) {
         maxResults = newMaxResults;
+    }
+
+    public String getPageToken() {
+        return pageToken;
+    }
+
+    public void setPageToken(String pageToken) {
+        this.pageToken = pageToken;
     }
 }

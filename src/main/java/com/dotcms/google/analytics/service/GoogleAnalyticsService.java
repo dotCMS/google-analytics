@@ -1,23 +1,28 @@
 package com.dotcms.google.analytics.service;
 
 import com.dotcms.google.analytics.model.AnalyticsRequest;
-import com.dotmarketing.util.Logger;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.analytics.Analytics;
-import com.google.api.services.analytics.AnalyticsScopes;
-import com.google.api.services.analytics.model.Accounts;
-import com.google.api.services.analytics.model.GaData;
-import com.google.api.services.analytics.model.Profiles;
-import com.google.api.services.analytics.model.Webproperties;
+import com.google.api.services.analyticsreporting.v4.AnalyticsReporting;
+import com.google.api.services.analyticsreporting.v4.AnalyticsReportingScopes;
+import com.google.api.services.analyticsreporting.v4.model.DateRange;
+import com.google.api.services.analyticsreporting.v4.model.Dimension;
+import com.google.api.services.analyticsreporting.v4.model.GetReportsRequest;
+import com.google.api.services.analyticsreporting.v4.model.GetReportsResponse;
+import com.google.api.services.analyticsreporting.v4.model.Metric;
+import com.google.api.services.analyticsreporting.v4.model.OrderBy;
+import com.google.api.services.analyticsreporting.v4.model.ReportRequest;
+import com.google.api.services.analyticsreporting.v4.model.SearchUserActivityRequest;
+import com.google.api.services.analyticsreporting.v4.model.Segment;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * This class provides a service to interact with Google Analytics.
@@ -25,7 +30,7 @@ import java.io.InputStream;
  */
 public class GoogleAnalyticsService {
 
-    private final Analytics analytics;
+    private final AnalyticsReporting analytics;
     private final JsonFactory jsonFactory = new JacksonFactory();
 
     public GoogleAnalyticsService(final char [] jsonKeyFile, final String applicationName) throws Exception {
@@ -34,10 +39,10 @@ public class GoogleAnalyticsService {
         try (final InputStream inputStream = new ByteArrayInputStream(new String(jsonKeyFile).getBytes())){
             final GoogleCredential credential = GoogleCredential
                     .fromStream(inputStream)
-                    .createScoped(AnalyticsScopes.all());
+                    .createScoped(AnalyticsReportingScopes.all());
 
             // Construct the Analytics service object.
-            this.analytics = new Analytics.Builder(httpTransport, jsonFactory, credential)
+            this.analytics = new AnalyticsReporting.Builder(httpTransport, jsonFactory, credential)
                     .setApplicationName(applicationName).build();
         }
     }
@@ -49,35 +54,9 @@ public class GoogleAnalyticsService {
      */
     public  String getFirstProfileId() throws IOException {
 
-        // Query for the list of all accounts associated with the service account.
-        final Accounts accounts = this.analytics.management().accounts().list().execute();
-
-        if (accounts.getItems().isEmpty()) {
-            throw new NotAccountFoundException("No accounts found");
-        }
-
-        final String firstAccountId = accounts.getItems().get(0).getId();
-
-        // Query for the list of properties associated with the first account.
-        Webproperties properties = analytics.management().webproperties()
-                .list(firstAccountId).execute();
-
-        if (properties.getItems().isEmpty()) {
-            throw new NoWebProperesFoundException("No Webproperties found");
-        }
-
-        final String firstWebpropertyId = properties.getItems().get(0).getId();
-
-        // Query for the list views (profiles) associated with the property.
-        final Profiles profiles = analytics.management().profiles()
-                .list(firstAccountId, firstWebpropertyId).execute();
-
-        if (profiles.getItems().isEmpty()) {
-            throw new NoViewProfilesFoundException("No views (profiles) found");
-        }
-
-        // Return the first (view) profile associated with the property.
-        return  profiles.getItems().get(0).getId();
+        final SearchUserActivityRequest searchUserActivityRequest = new SearchUserActivityRequest();
+        final AnalyticsReporting.UserActivity.Search search = this.analytics.userActivity().search(searchUserActivityRequest);
+        return search.containsKey("viewId")? search.get("viewId").toString(): null;
     }
 
     /**
@@ -87,12 +66,40 @@ public class GoogleAnalyticsService {
      * @return GoData
      * @throws IOException
      */
-    public GaData getPastWeekResults(final String profileId) throws IOException {
+    public GetReportsResponse getPastWeekResults(final String profileId) throws IOException {
         // Query the Core Reporting API for the number of sessions
         // in the past seven days.
-        return analytics.data().ga()
-                .get("ga:" + profileId, "7daysAgo", "today", "ga:sessions")
-                .execute();
+
+        final DateRange dateRange = new DateRange();
+        dateRange.setStartDate("7DaysAgo");
+        dateRange.setEndDate("today");
+
+        // Create the Metrics object.
+        final Metric sessions = new Metric()
+                .setExpression("ga:sessions")
+                .setAlias("sessions");
+
+        final Dimension pageTitle = new Dimension().setName("ga:pageTitle");
+
+        // Create the ReportRequest object.
+        final ReportRequest request = new ReportRequest()
+                .setViewId(profileId) //
+                .setDateRanges(Arrays.asList(dateRange))
+                .setMetrics(Arrays.asList(sessions))
+                .setDimensions(Arrays.asList(pageTitle));
+
+        final ArrayList<ReportRequest> requests = new ArrayList<>();
+        requests.add(request);
+
+        // Create the GetReportsRequest object.
+        final GetReportsRequest getReport = new GetReportsRequest()
+                .setReportRequests(requests);
+
+        // Call the batchGet method.
+        GetReportsResponse response = this.analytics.reports().batchGet(getReport).execute();
+
+        // Return the response.
+        return response;
     }
 
 
@@ -101,47 +108,62 @@ public class GoogleAnalyticsService {
      * @param analyticsRequest
      * @return GoData
      */
-    public GaData query(final AnalyticsRequest analyticsRequest) {
+    public GetReportsResponse query(final AnalyticsRequest analyticsRequest) throws IOException {
 
-        GaData results = null;
 
-        try {
 
-            Analytics.Data.Ga.Get get = this.analytics.data().ga().get(
-                    analyticsRequest.getProfileId(), analyticsRequest.getStartDate(),
-                    analyticsRequest.getEndDate(), analyticsRequest.getMetrics());
+        final ReportRequest request = new ReportRequest().setViewId(analyticsRequest.getProfileId());
+        final DateRange dateRange = new DateRange();
+        dateRange.setStartDate(analyticsRequest.getStartDate());
+        dateRange.setEndDate(analyticsRequest.getEndDate());
 
-            if (analyticsRequest.getDimensions() != null && !analyticsRequest.getDimensions().equals("")) {
-                get = get.setDimensions(analyticsRequest.getDimensions());
-            }
+        final Metric sessions = new Metric()
+                .setExpression(analyticsRequest.getMetrics());
 
-            if (analyticsRequest.getSegment() != null && !analyticsRequest.getSegment().equals("")) {
-                get = get.setSegment(analyticsRequest.getSegment());
-            }
+        request.setDateRanges(Arrays.asList(dateRange));
+        request.setMetrics(Arrays.asList(sessions));
 
-            if (analyticsRequest.getSort() != null && !analyticsRequest.getSort().equals("")) {
-                get = get.setSort(analyticsRequest.getSort());
-            }
+        if (analyticsRequest.getDimensions() != null && !analyticsRequest.getDimensions().equals("")) {
 
-            if (analyticsRequest.getFilters() != null && !analyticsRequest.getFilters().equals("")) {
-                get = get.setFilters(analyticsRequest.getFilters());
-            }
-
-            if (analyticsRequest.getStartIndex() >= 1) {
-                get = get.setStartIndex(analyticsRequest.getStartIndex());
-            }
-
-            if (analyticsRequest.getMaxResults() >= 1) {
-                get = get.setMaxResults(analyticsRequest.getMaxResults());
-            }
-
-            results = get.execute();
-        } catch (GoogleJsonResponseException e) {
-            Logger.error(this, "Google Analytics JSON response error", e);
-        } catch (Exception e) {
-            Logger.error(this, "Unable to query Google Analytics", e);
+            final Dimension dimension = new Dimension().setName(analyticsRequest.getDimensions());
+            request.setDimensions(Arrays.asList(dimension));
         }
 
-        return results;
+        if (analyticsRequest.getSegment() != null && !analyticsRequest.getSegment().equals("")) {
+
+            request.setSegments(Arrays.asList(new Segment().setSegmentId(analyticsRequest.getSegment())));
+        }
+
+        if (analyticsRequest.getSort() != null && !analyticsRequest.getSort().equals("")) {
+
+            request.setOrderBys(Arrays.asList(new OrderBy().setSortOrder(analyticsRequest.getSort())));
+        }
+
+        if (analyticsRequest.getFilters() != null && !analyticsRequest.getFilters().equals("")) {
+
+            request.setFiltersExpression(analyticsRequest.getFilters());
+        }
+
+        if (analyticsRequest.getStartIndex() >= 1) {
+            // todo: it seems this should be replace for the next page token.
+            //get = get.setStartIndex(analyticsRequest.getStartIndex());
+        }
+
+        if (analyticsRequest.getMaxResults() >= 1) {
+            request.setPageSize(analyticsRequest.getMaxResults());
+        }
+
+        final ArrayList<ReportRequest> requests = new ArrayList<>();
+        requests.add(request);
+
+        // Create the GetReportsRequest object.
+        final GetReportsRequest getReport = new GetReportsRequest()
+                .setReportRequests(requests);
+
+        // Call the batchGet method.
+        final GetReportsResponse response = this.analytics.reports().batchGet(getReport).execute();
+
+        // Return the response.
+        return response;
     }
 }
