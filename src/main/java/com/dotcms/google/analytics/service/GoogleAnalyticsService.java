@@ -1,6 +1,7 @@
 package com.dotcms.google.analytics.service;
 
 import com.dotcms.google.analytics.model.AnalyticsRequest;
+import com.dotmarketing.util.Logger;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
@@ -17,12 +18,14 @@ import com.google.api.services.analyticsreporting.v4.model.OrderBy;
 import com.google.api.services.analyticsreporting.v4.model.ReportRequest;
 import com.google.api.services.analyticsreporting.v4.model.SearchUserActivityRequest;
 import com.google.api.services.analyticsreporting.v4.model.Segment;
+import com.liferay.util.StringPool;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -118,16 +121,29 @@ public class GoogleAnalyticsService {
         dateRange.setStartDate(analyticsRequest.getStartDate());
         dateRange.setEndDate(analyticsRequest.getEndDate());
 
-        final Metric sessions = new Metric()
-                .setExpression(analyticsRequest.getMetrics());
+        if (Objects.nonNull(analyticsRequest.getMetrics())) {
+
+            final String [] metrics = analyticsRequest.getMetrics().split(StringPool.COMMA);
+            Logger.info(this.getClass().getName(), "metrics: " + Arrays.asList(metrics));
+            final List<Metric> metricList = new ArrayList<>();
+            for (final String metric : metrics) {
+                Logger.info(this.getClass().getName(), "Adding metric: " + metric);
+                metricList.add(new Metric().setExpression(metric));
+            }
+
+            request.setMetrics(metricList);
+        }
 
         request.setDateRanges(Arrays.asList(dateRange));
-        request.setMetrics(Arrays.asList(sessions));
 
         if (analyticsRequest.getDimensions() != null && !analyticsRequest.getDimensions().equals("")) {
 
-            final Dimension dimension = new Dimension().setName(analyticsRequest.getDimensions());
-            request.setDimensions(Arrays.asList(dimension));
+            final String [] dimensions = analyticsRequest.getDimensions().split(StringPool.COMMA);
+            final List<Dimension> dimensionList = new ArrayList<>();
+            for (final String dimension : dimensions) {
+                dimensionList.add(new Dimension().setName(dimension));
+            }
+            request.setDimensions(dimensionList);
         }
 
         if (analyticsRequest.getSegment() != null && !analyticsRequest.getSegment().equals("")) {
@@ -155,6 +171,8 @@ public class GoogleAnalyticsService {
 
         final ArrayList<ReportRequest> requests = new ArrayList<>();
         requests.add(request);
+
+        Logger.info(this.getClass().getName(), "requests: " + requests);
 
         // Create the GetReportsRequest object.
         final GetReportsRequest getReport = new GetReportsRequest()
