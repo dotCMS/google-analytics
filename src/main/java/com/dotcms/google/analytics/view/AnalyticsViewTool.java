@@ -29,7 +29,7 @@ public class AnalyticsViewTool implements ViewTool {
     private Context ctx;
 
     public void init(final Object obj) {
-        Logger.info(this, "Initializing the AnalyticsViewTool");
+        Logger.debug(this, "Initializing the AnalyticsViewTool");
         ViewContext context = (ViewContext) obj;
         this.request = context.getRequest();
         this.ctx = context.getVelocityContext();
@@ -61,10 +61,13 @@ public class AnalyticsViewTool implements ViewTool {
         final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
         final String siteId = currentHost.getIdentifier();
 
+        Logger.debug(this, "Calling the Query Method");
+
         final GoogleAnalyticsService googleAnalyticsService =
                 this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
                         key -> getGoogleAnalyticsService(siteId));
 
+        Logger.debug(this, "End, Call the Query Method");
         return googleAnalyticsService.query(analyticsRequest);
     }
 

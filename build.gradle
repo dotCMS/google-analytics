@@ -22,18 +22,14 @@ configurations {
 dependencies {
 
     compileOnly('com.dotcms:dotcms:23.01.10') { transitive = true }
-    compileOnly (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.46.0') {
-        exclude group: 'com.google.code.gson', module: 'gson'
-    }
-    osgiLibs (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.46.0') {
-        exclude group: 'com.google.code.gson', module: 'gson'
-    }
+    implementation (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.48.0')
+    osgiLibs (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.48.0')
 
     //compile group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
     //osgiLibs group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
 
     implementation "commons-io:commons-io:2.11.0"
-    implementation "com.google.code.gson:gson:2.8.6"
+   // implementation "com.google.code.gson:gson:2.8.6"
     //compileOnly('org.apache.logging.log4j:log4j-api:2.17.2')
     compileOnly('org.apache.logging.log4j:log4j-core:2.20.0')
     compileOnly('org.apache.felix:org.apache.felix.framework:7.0.5')

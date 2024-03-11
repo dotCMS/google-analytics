@@ -10,6 +10,7 @@ import com.google.analytics.data.v1beta.Metric;
 import com.google.analytics.data.v1beta.OrderBy;
 import com.google.analytics.data.v1beta.RunReportRequest;
 import com.google.analytics.data.v1beta.RunReportResponse;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.liferay.util.StringPool;
@@ -28,18 +29,31 @@ import java.util.Objects;
  */
 public class GoogleAnalyticsService {
 
-    private final BetaAnalyticsDataSettings betaAnalyticsDataSettings ;
+    private final BetaAnalyticsDataSettings betaAnalyticsDataSettings;
     public GoogleAnalyticsService(final char [] jsonKeyFile) throws Exception {
 
-        try (final InputStream inputStream = new ByteArrayInputStream(new String(jsonKeyFile).getBytes())){
+        Logger.debug(this, "Creating GoogleAnalyticsService ");
+        try {
 
+            Logger.debug(this, "Creating inputStream ");
+            final InputStream inputStream = new ByteArrayInputStream(new String(jsonKeyFile).getBytes());
+            Logger.debug(this, "Creating googleCredentials ");
+            final GoogleCredentials googleCredentials = GoogleCredentials.fromStream(inputStream);
+            Logger.debug(this, "Creating credentialsProvider ");
+            final CredentialsProvider credentialsProvider = FixedCredentialsProvider.create(googleCredentials);
+            Logger.debug(this, "Creating BetaAnalyticsDataSettings ");
             this.betaAnalyticsDataSettings =
                     BetaAnalyticsDataSettings.newBuilder()
-                            .setCredentialsProvider(
-                                    FixedCredentialsProvider.create(
-                                            GoogleCredentials.fromStream(inputStream)))
+                            .setCredentialsProvider(credentialsProvider) // this closes the input stream
                             .build();
+            Logger.debug(this, "Created betaAnalyticsDataSettings ");
+        } catch (Throwable e) {
+
+            Logger.error(this, "Error creating GoogleAnalyticsService", e);
+            throw e;
         }
+
+        Logger.debug(this, "Created GoogleAnalyticsService");
     }
 
     /**
@@ -62,11 +76,11 @@ public class GoogleAnalyticsService {
             if (Objects.nonNull(analyticsRequest.getMetrics())) {
 
                 final String [] metrics = analyticsRequest.getMetrics().split(StringPool.COMMA);
-                Logger.info(this.getClass().getName(), "metrics: " + Arrays.asList(metrics));
+                Logger.debug(this.getClass().getName(), "metrics: " + Arrays.asList(metrics));
                 final List<Metric> metricList = new ArrayList<>();
                 for (final String metric : metrics) {
-                    Logger.info(this.getClass().getName(), "Adding metric: " + metric);
-                    requestBuilder.addMetrics(Metric.newBuilder().setExpression(metric));
+                    Logger.debug(this.getClass().getName(), "Adding metric: " + metric);
+                    requestBuilder.addMetrics(Metric.newBuilder().setName(metric));
                 }
             }
 
