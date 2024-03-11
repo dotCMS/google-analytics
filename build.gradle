@@ -1,13 +1,13 @@
 plugins {
-    id 'biz.aQute.bnd.builder' version '3.3.0'
+    id 'biz.aQute.bnd.builder' version '3.5.0'
 }
 
-apply plugin: 'application'
-apply plugin: 'war'
-apply plugin: 'idea'
+//apply plugin: 'application'
+//apply plugin: 'war'
+//apply plugin: 'idea'
 
 
-sourceCompatibility = '1.8'
+sourceCompatibility = JavaVersion.VERSION_11
 version = '0.4.1'
 
 
@@ -20,17 +20,24 @@ configurations {
 }
 
 dependencies {
-    compile('com.dotcms:dotcms:23.01.10') { transitive = true }
-    // https://mvnrepository.com/artifact/com.google.apis/google-api-services-analytics
-    // https://mvnrepository.com/artifact/com.google.apis/google-api-services-analyticsreporting
-    compile group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
-    osgiLibs group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
 
+    compileOnly('com.dotcms:dotcms:23.01.10') { transitive = true }
+    compileOnly (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.46.0') {
+        exclude group: 'com.google.code.gson', module: 'gson'
+    }
+    osgiLibs (group: 'com.google.analytics', name: 'google-analytics-data', version: '0.46.0') {
+        exclude group: 'com.google.code.gson', module: 'gson'
+    }
 
-    compileOnly('org.apache.logging.log4j:log4j-api:2.17.2')
+    //compile group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
+    //osgiLibs group: 'com.google.apis', name: 'google-api-services-analyticsreporting', version: 'v4-rev174-1.25.0'
+
+    implementation "commons-io:commons-io:2.11.0"
+    implementation "com.google.code.gson:gson:2.8.6"
+    //compileOnly('org.apache.logging.log4j:log4j-api:2.17.2')
     compileOnly('org.apache.logging.log4j:log4j-core:2.20.0')
     compileOnly('org.apache.felix:org.apache.felix.framework:7.0.5')
-    compileOnly('org.apache.httpcomponents:httpclient:4.5.9')
+    //compileOnly('org.apache.httpcomponents:httpclient:4.5.9')
     // https://mvnrepository.com/artifact/javax.servlet/servlet-api
     compileOnly group: 'javax.servlet', name: 'servlet-api', version: '2.5'
 
@@ -41,9 +48,10 @@ dependencies {
 //Plugin jar
 /////////////////////////
 
-import java.util.jar.Attributes
-import java.util.jar.JarFile
-jar.baseName = 'com.dotcms.google.analytics'
+import java.util.jar.*
+//import java.util.jar.Attributes
+//import java.util.jar.JarFile
+//jar.baseName = 'com.dotcms.google.analytics'
 
 jar {
     manifest {
@@ -53,11 +61,8 @@ jar {
                 'Bundle-DocURL': 'https://dotcms.com/',
                 'Bundle-Activator': 'com.dotcms.google.analytics.osgi.Activator',
                 'Bundle-ClassPath' : "${classPathLibraries()}",
-                'DynamicImport-Package': '*',
                 'Import-Package': '''
                     !com.google.*,
-                    !org.apache.avalon.framework.logger.*,
-                    org.apache.log.*;version=0.1.0,
                     *;version=0
                 '''
         )
@@ -133,8 +138,8 @@ task readManifesttAttributes {
     doFirst {
 
         println 'starting readManifesttAttributes'
-        File file = configurations.baseline.singleFile
-                //file("${buildDir}/tmp/jar/${jar.baseName}-${jar.version}.jar")
+        File file = //configurations.baseline.singleFile
+                file("${buildDir}/tmp/jar/${jar.baseName}-${jar.version}.jar")
         println 'readManifesttAttributes, file:::: ' + file
         JarFile jar = new JarFile(file)
 

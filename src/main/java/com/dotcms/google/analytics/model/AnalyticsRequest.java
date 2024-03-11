@@ -30,6 +30,8 @@ public class AnalyticsRequest {
 
     // Required parameters
 
+    private String propertyId;
+
     /**
      * The profile ID of the profile from which to request data.
      */
@@ -80,11 +82,6 @@ public class AnalyticsRequest {
     private int startIndex;
 
     /**
-     * The page token to retrieve the next page of results. The default is to retrieve the first page of results.
-     */
-    private String pageToken;
-
-    /**
      * Maximum number of results to retrieve from the API. The default is 1,000 but can be set up to 10,000.
      */
     private int maxResults;
@@ -94,12 +91,16 @@ public class AnalyticsRequest {
      *
      * @param newProfileId The Google Analytics profile ID to query against.
      */
-    public AnalyticsRequest(final String newProfileId) {
-        if (newProfileId == null || newProfileId.equals("")) {
-            throw new IllegalArgumentException("profileId cannot be null or empty");
+    public AnalyticsRequest(final String propertyId) {
+        if (propertyId == null || propertyId.equals("")) {
+            throw new IllegalArgumentException("propertyId cannot be null or empty");
         }
 
-        profileId = newProfileId;
+        this.propertyId = propertyId;
+    }
+
+    public String getPropertyId() {
+        return propertyId;
     }
 
     /**
@@ -255,7 +256,6 @@ public class AnalyticsRequest {
      *
      * @return The value of startIndex.
      */
-    @Deprecated
     public final int getStartIndex() {
         return startIndex;
     }
@@ -266,7 +266,6 @@ public class AnalyticsRequest {
      *
      * @param newStartIndex The value of startIndex.
      */
-    @Deprecated
     public final void setStartIndex(final int newStartIndex) {
         startIndex = newStartIndex;
     }
@@ -289,11 +288,5 @@ public class AnalyticsRequest {
         maxResults = newMaxResults;
     }
 
-    public String getPageToken() {
-        return pageToken;
-    }
 
-    public void setPageToken(String pageToken) {
-        this.pageToken = pageToken;
-    }
 }
