@@ -1,7 +1,9 @@
 package com.dotcms.google.analytics.model;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * A model class for representing a Google Analytics query request.
@@ -66,6 +68,8 @@ public class AnalyticsRequest {
      */
     private String segment;
 
+    private List<FilterRequest> metricFilterList = new ArrayList<>();
+    private List<FilterRequest> dimensionFilterList = new ArrayList<>();
     /**
      * Specifies a subset of all data matched in analytics.
      */
@@ -117,6 +121,7 @@ public class AnalyticsRequest {
      *
      * @return The value of metrics.
      */
+    @Deprecated
     public final String getMetrics() {
         if (metrics != null && !metrics.equals("")) {
             return metrics;
@@ -130,10 +135,38 @@ public class AnalyticsRequest {
      *
      * @param newMetrics The value of metrics.
      */
+    @Deprecated
     public final void setMetrics(final String newMetrics) {
         metrics = newMetrics;
     }
 
+    public void addMetricFilter(final String field, final String operator, final String value) {
+        final FilterRequest filter = new FilterRequest(field, operator, value);
+        metricFilterList.add(filter);
+    }
+
+    public void addMetricFilter(final FilterRequest filter) {
+        metricFilterList.add(filter);
+    }
+
+
+    public List<FilterRequest> getMetricFilterList() {
+        return metricFilterList;
+    }
+
+    public void addDimensionFilter(final String field, final String operator, final String value) {
+        final FilterRequest filter = new FilterRequest(field, operator, value);
+        dimensionFilterList.add(filter);
+    }
+
+    public void addDimensionFilter(final FilterRequest filter) {
+        dimensionFilterList.add(filter);
+    }
+
+
+    public List<FilterRequest> getDimensionFilterList() {
+        return dimensionFilterList;
+    }
     /**
      * Gets the value of the startDate property.
      *

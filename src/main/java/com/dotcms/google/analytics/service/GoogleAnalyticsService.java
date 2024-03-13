@@ -1,11 +1,15 @@
 package com.dotcms.google.analytics.service;
 
 import com.dotcms.google.analytics.model.AnalyticsRequest;
+import com.dotcms.google.analytics.model.FilterRequest;
 import com.dotmarketing.util.Logger;
 import com.google.analytics.data.v1beta.BetaAnalyticsDataClient;
 import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings;
 import com.google.analytics.data.v1beta.DateRange;
 import com.google.analytics.data.v1beta.Dimension;
+import com.google.analytics.data.v1beta.Filter;
+import com.google.analytics.data.v1beta.FilterExpression;
+import com.google.analytics.data.v1beta.FilterExpressionList;
 import com.google.analytics.data.v1beta.Metric;
 import com.google.analytics.data.v1beta.OrderBy;
 import com.google.analytics.data.v1beta.RunReportRequest;
@@ -99,12 +103,83 @@ public class GoogleAnalyticsService {
                                 .setDesc(true));
             }
 
+            if (analyticsRequest.getMetricFilterList().size() > 0) {
+
+                setMetricFilters(analyticsRequest, requestBuilder);
+            }
+
+            if (analyticsRequest.getDimensionFilterList().size() > 0) {
+
+                setDimensionFilters(analyticsRequest, requestBuilder);
+            }
+
             requestBuilder.setOffset(analyticsRequest.getStartIndex());
             requestBuilder.setLimit(analyticsRequest.getMaxResults());
 
             requestBuilder.setProperty("properties/" + analyticsRequest.getPropertyId());
+            final RunReportRequest runReportRequest = requestBuilder.build();
+            Logger.info(this, "GA4 Request: " + runReportRequest);
 
-            return analyticsData.runReport(requestBuilder.build());
+            return analyticsData.runReport(runReportRequest);
+        }
+    }
+
+    private static void setDimensionFilters(final AnalyticsRequest analyticsRequest,
+                                         final RunReportRequest.Builder requestBuilder) {
+
+        if (analyticsRequest.getDimensionFilterList().size() == 1) {
+
+            final FilterRequest filterRequest = analyticsRequest.getDimensionFilterList().get(0);
+            final FilterExpression filterExpression = getFilterExpression(filterRequest);
+
+            requestBuilder.setDimensionFilter(filterExpression);
+        } else {
+
+            final FilterExpressionList.Builder builder = FilterExpressionList.newBuilder();
+            for (final FilterRequest filterRequest : analyticsRequest.getMetricFilterList()) {
+
+                final FilterExpression filterExpression = getFilterExpression(filterRequest);
+                builder.addExpressions(filterExpression);
+            }
+
+            requestBuilder.setDimensionFilter(FilterExpression.newBuilder().setAndGroup(builder.build()));
+        }
+    }
+
+    private static FilterExpression getFilterExpression(final FilterRequest filterRequest) {
+
+        final Filter.StringFilter.MatchType matchType = Objects.nonNull(filterRequest.getOperator()) ?
+                Filter.StringFilter.MatchType.valueOf(filterRequest.getOperator()) : Filter.StringFilter.MatchType.EXACT;
+        final FilterExpression filterExpression = FilterExpression.newBuilder()
+                .setFilter(Filter.newBuilder()
+                        .setFieldName(filterRequest.getField())
+                        .setStringFilter(Filter.StringFilter.newBuilder()
+                                .setValue(filterRequest.getValue())
+                                .setMatchType(matchType)
+                                .build())
+                        .build())
+                .build();
+        return filterExpression;
+    }
+
+    private static void setMetricFilters(final AnalyticsRequest analyticsRequest,
+                                         final RunReportRequest.Builder requestBuilder) {
+
+        if (analyticsRequest.getMetricFilterList().size() == 1) {
+
+            final FilterRequest filterRequest = analyticsRequest.getMetricFilterList().get(0);
+            final FilterExpression filterExpression = getFilterExpression(filterRequest);
+            requestBuilder.setMetricFilter(filterExpression);
+        } else {
+
+            final FilterExpressionList.Builder builder = FilterExpressionList.newBuilder();
+            for (final FilterRequest filterRequest : analyticsRequest.getMetricFilterList()) {
+
+                final FilterExpression filterExpression = getFilterExpression(filterRequest);
+                builder.addExpressions(filterExpression);
+            }
+
+            requestBuilder.setMetricFilter(FilterExpression.newBuilder().setAndGroup(builder.build()));
         }
     }
 }
