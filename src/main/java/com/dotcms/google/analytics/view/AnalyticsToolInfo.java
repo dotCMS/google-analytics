@@ -1,10 +1,7 @@
 package com.dotcms.google.analytics.view;
 
-import com.google.api.services.analytics.model.GaData;
 import org.apache.velocity.tools.view.context.ViewContext;
 import org.apache.velocity.tools.view.servlet.ServletToolInfo;
-
-import java.io.IOException;
 
 /**
  * Tool info for the AnalyticsViewTool class.

@@ -7,9 +7,7 @@ import com.dotcms.google.analytics.service.GoogleAnalyticsService;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.util.Logger;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.services.analytics.Analytics;
-import com.google.api.services.analytics.model.GaData;
+import com.google.analytics.data.v1beta.RunReportResponse;
 import org.apache.velocity.context.Context;
 import org.apache.velocity.tools.view.context.ViewContext;
 import org.apache.velocity.tools.view.tools.ViewTool;
@@ -31,7 +29,7 @@ public class AnalyticsViewTool implements ViewTool {
     private Context ctx;
 
     public void init(final Object obj) {
-        Logger.info(this, "Initializing the AnalyticsViewTool");
+        Logger.debug(this, "Initializing the AnalyticsViewTool");
         ViewContext context = (ViewContext) obj;
         this.request = context.getRequest();
         this.ctx = context.getVelocityContext();
@@ -42,73 +40,43 @@ public class AnalyticsViewTool implements ViewTool {
     }
 
     /**
-     * Get first profile id available
-     * @return String
-     * @throws IOException
-     */
-    public String findFirstProfile() throws IOException {
-
-        final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
-        final String siteId = currentHost.getIdentifier();
-
-        final GoogleAnalyticsService googleAnalyticsService =
-                this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
-                        key -> getGoogleAnalyticsService(siteId));
-
-        return googleAnalyticsService.getFirstProfileId();
-    }
-
-    /**
-     * Creates a default AnalyticsRequest instance for the provided profile ID.
+     * Creates a default AnalyticsRequest instance for the provided property ID.
      *
-     * @param profileId The profile ID to query against. Example: ga:12345678
+     * @param propertyId The property ID to query against. Example: ga:12345678
      * @return A default AnalyticsRequest instance that can be customized as needed.
      */
-    public final AnalyticsRequest createAnalyticsRequest(final String profileId) {
+    public final AnalyticsRequest createAnalyticsRequest(final String propertyId) {
 
-        return new AnalyticsRequest(profileId);
+        return new AnalyticsRequest(propertyId);
     }
 
     /**
      * Executes an analytics query using the provided request.
      *
      * @param analyticsRequest The AnalyticsRequest instance representing the desired query.
-     * @return A GaData instances containing the results of the query.
+     * @return A RunReportResponse instances containing the results of the query.
      */
-    public final GaData query(final AnalyticsRequest analyticsRequest) {
+    public final RunReportResponse query(final AnalyticsRequest analyticsRequest) throws IOException {
 
         final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
         final String siteId = currentHost.getIdentifier();
+
+        Logger.debug(this, "Calling the Query Method");
 
         final GoogleAnalyticsService googleAnalyticsService =
                 this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
                         key -> getGoogleAnalyticsService(siteId));
 
+        Logger.debug(this, "End, Call the Query Method");
         return googleAnalyticsService.query(analyticsRequest);
     }
 
-    /**
-     * Get the results for the past week for the first profile associated with the current host.
-     * @return GaData
-     * @throws IOException
-     */
-    public GaData getPastWeekResultsWithFirstProfile() throws IOException {
-
-        final Host currentHost = WebAPILocator.getHostWebAPI().getHost(this.request);
-        final String siteId = currentHost.getIdentifier();
-
-        final GoogleAnalyticsService googleAnalyticsService =
-                this.googleAnalyticsServiceMap.computeIfAbsent(siteId,
-                        key -> getGoogleAnalyticsService(siteId));
-        final String profileId = googleAnalyticsService.getFirstProfileId();
-        return googleAnalyticsService.getPastWeekResults(profileId);
-    }
 
     private  GoogleAnalyticsService getGoogleAnalyticsService(final String siteIdentifier) {
         try {
 
             final AnalyticsApp analyticsApp = this.analyticsAppService.getAnalyticsApp(siteIdentifier);
-            return new GoogleAnalyticsService(analyticsApp.getJsonKeyFile(), analyticsApp.getApplicationName());
+            return new GoogleAnalyticsService(analyticsApp.getJsonKeyFile());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

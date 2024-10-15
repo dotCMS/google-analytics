@@ -1,23 +1,31 @@
 package com.dotcms.google.analytics.service;
 
 import com.dotcms.google.analytics.model.AnalyticsRequest;
+import com.dotcms.google.analytics.model.FilterRequest;
 import com.dotmarketing.util.Logger;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.analytics.Analytics;
-import com.google.api.services.analytics.AnalyticsScopes;
-import com.google.api.services.analytics.model.Accounts;
-import com.google.api.services.analytics.model.GaData;
-import com.google.api.services.analytics.model.Profiles;
-import com.google.api.services.analytics.model.Webproperties;
+import com.google.analytics.data.v1beta.BetaAnalyticsDataClient;
+import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings;
+import com.google.analytics.data.v1beta.DateRange;
+import com.google.analytics.data.v1beta.Dimension;
+import com.google.analytics.data.v1beta.Filter;
+import com.google.analytics.data.v1beta.FilterExpression;
+import com.google.analytics.data.v1beta.FilterExpressionList;
+import com.google.analytics.data.v1beta.Metric;
+import com.google.analytics.data.v1beta.OrderBy;
+import com.google.analytics.data.v1beta.RunReportRequest;
+import com.google.analytics.data.v1beta.RunReportResponse;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.liferay.util.StringPool;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * This class provides a service to interact with Google Analytics.
@@ -25,123 +33,153 @@ import java.io.InputStream;
  */
 public class GoogleAnalyticsService {
 
-    private final Analytics analytics;
-    private final JsonFactory jsonFactory = new JacksonFactory();
+    private final BetaAnalyticsDataSettings betaAnalyticsDataSettings;
+    public GoogleAnalyticsService(final char [] jsonKeyFile) throws Exception {
 
-    public GoogleAnalyticsService(final char [] jsonKeyFile, final String applicationName) throws Exception {
+        Logger.debug(this, "Creating GoogleAnalyticsService ");
+        try {
 
-        final HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        try (final InputStream inputStream = new ByteArrayInputStream(new String(jsonKeyFile).getBytes())){
-            final GoogleCredential credential = GoogleCredential
-                    .fromStream(inputStream)
-                    .createScoped(AnalyticsScopes.all());
+            Logger.debug(this, "Creating inputStream ");
+            final InputStream inputStream = new ByteArrayInputStream(new String(jsonKeyFile).getBytes());
+            Logger.debug(this, "Creating googleCredentials ");
+            final GoogleCredentials googleCredentials = GoogleCredentials.fromStream(inputStream);
+            Logger.debug(this, "Creating credentialsProvider ");
+            final CredentialsProvider credentialsProvider = FixedCredentialsProvider.create(googleCredentials);
+            Logger.debug(this, "Creating BetaAnalyticsDataSettings ");
+            this.betaAnalyticsDataSettings =
+                    BetaAnalyticsDataSettings.newBuilder()
+                            .setCredentialsProvider(credentialsProvider) // this closes the input stream
+                            .build();
+            Logger.debug(this, "Created betaAnalyticsDataSettings ");
+        } catch (Throwable e) {
 
-            // Construct the Analytics service object.
-            this.analytics = new Analytics.Builder(httpTransport, jsonFactory, credential)
-                    .setApplicationName(applicationName).build();
+            Logger.error(this, "Error creating GoogleAnalyticsService", e);
+            throw e;
         }
+
+        Logger.debug(this, "Created GoogleAnalyticsService");
     }
-
-    /**
-     * Get the first view (profile) ID for the authorized user.
-     * @return String
-     * @throws IOException
-     */
-    public  String getFirstProfileId() throws IOException {
-
-        // Query for the list of all accounts associated with the service account.
-        final Accounts accounts = this.analytics.management().accounts().list().execute();
-
-        if (accounts.getItems().isEmpty()) {
-            throw new NotAccountFoundException("No accounts found");
-        }
-
-        final String firstAccountId = accounts.getItems().get(0).getId();
-
-        // Query for the list of properties associated with the first account.
-        Webproperties properties = analytics.management().webproperties()
-                .list(firstAccountId).execute();
-
-        if (properties.getItems().isEmpty()) {
-            throw new NoWebProperesFoundException("No Webproperties found");
-        }
-
-        final String firstWebpropertyId = properties.getItems().get(0).getId();
-
-        // Query for the list views (profiles) associated with the property.
-        final Profiles profiles = analytics.management().profiles()
-                .list(firstAccountId, firstWebpropertyId).execute();
-
-        if (profiles.getItems().isEmpty()) {
-            throw new NoViewProfilesFoundException("No views (profiles) found");
-        }
-
-        // Return the first (view) profile associated with the property.
-        return  profiles.getItems().get(0).getId();
-    }
-
-    /**
-     * Query the Core Reporting API for the number of sessions
-     *  in the past seven days.
-     * @param profileId
-     * @return GoData
-     * @throws IOException
-     */
-    public GaData getPastWeekResults(final String profileId) throws IOException {
-        // Query the Core Reporting API for the number of sessions
-        // in the past seven days.
-        return analytics.data().ga()
-                .get("ga:" + profileId, "7daysAgo", "today", "ga:sessions")
-                .execute();
-    }
-
 
     /**
      * Runs a query against the Google Analytics API.
      * @param analyticsRequest
      * @return GoData
      */
-    public GaData query(final AnalyticsRequest analyticsRequest) {
+    public RunReportResponse query(final AnalyticsRequest analyticsRequest) throws IOException {
 
-        GaData results = null;
+        try (BetaAnalyticsDataClient analyticsData = BetaAnalyticsDataClient.create(betaAnalyticsDataSettings)) {
 
-        try {
+            final RunReportRequest.Builder requestBuilder =
+                    RunReportRequest.newBuilder();
 
-            Analytics.Data.Ga.Get get = this.analytics.data().ga().get(
-                    analyticsRequest.getProfileId(), analyticsRequest.getStartDate(),
-                    analyticsRequest.getEndDate(), analyticsRequest.getMetrics());
+            requestBuilder.addDateRanges(DateRange.newBuilder()
+                    .setStartDate(analyticsRequest.getStartDate())
+                    .setEndDate(analyticsRequest.getEndDate())
+                    .build());
 
-            if (analyticsRequest.getDimensions() != null && !analyticsRequest.getDimensions().equals("")) {
-                get = get.setDimensions(analyticsRequest.getDimensions());
+            if (Objects.nonNull(analyticsRequest.getMetrics())) {
+
+                final String [] metrics = analyticsRequest.getMetrics().split(StringPool.COMMA);
+                Logger.debug(this.getClass().getName(), "metrics: " + Arrays.asList(metrics));
+                final List<Metric> metricList = new ArrayList<>();
+                for (final String metric : metrics) {
+                    Logger.debug(this.getClass().getName(), "Adding metric: " + metric);
+                    requestBuilder.addMetrics(Metric.newBuilder().setName(metric));
+                }
             }
 
-            if (analyticsRequest.getSegment() != null && !analyticsRequest.getSegment().equals("")) {
-                get = get.setSegment(analyticsRequest.getSegment());
+            if (analyticsRequest.getDimensions() != null && !analyticsRequest.getDimensions().equals("")) {
+
+                final String [] dimensions = analyticsRequest.getDimensions().split(StringPool.COMMA);
+                for (final String dimension : dimensions) {
+                    requestBuilder.addDimensions(Dimension.newBuilder().setName(dimension).build());
+                }
             }
 
             if (analyticsRequest.getSort() != null && !analyticsRequest.getSort().equals("")) {
-                get = get.setSort(analyticsRequest.getSort());
+                requestBuilder.addOrderBys(
+                        OrderBy.newBuilder()
+                                .setMetric(OrderBy.MetricOrderBy.newBuilder().setMetricName(analyticsRequest.getSort()))
+                                .setDesc(true));
             }
 
-            if (analyticsRequest.getFilters() != null && !analyticsRequest.getFilters().equals("")) {
-                get = get.setFilters(analyticsRequest.getFilters());
+            if (analyticsRequest.getMetricFilterList().size() > 0) {
+
+                setMetricFilters(analyticsRequest, requestBuilder);
             }
 
-            if (analyticsRequest.getStartIndex() >= 1) {
-                get = get.setStartIndex(analyticsRequest.getStartIndex());
+            if (analyticsRequest.getDimensionFilterList().size() > 0) {
+
+                setDimensionFilters(analyticsRequest, requestBuilder);
             }
 
-            if (analyticsRequest.getMaxResults() >= 1) {
-                get = get.setMaxResults(analyticsRequest.getMaxResults());
-            }
+            requestBuilder.setOffset(analyticsRequest.getStartIndex());
+            requestBuilder.setLimit(analyticsRequest.getMaxResults());
 
-            results = get.execute();
-        } catch (GoogleJsonResponseException e) {
-            Logger.error(this, "Google Analytics JSON response error", e);
-        } catch (Exception e) {
-            Logger.error(this, "Unable to query Google Analytics", e);
+            requestBuilder.setProperty("properties/" + analyticsRequest.getPropertyId());
+            final RunReportRequest runReportRequest = requestBuilder.build();
+            Logger.info(this, "GA4 Request: " + runReportRequest);
+
+            return analyticsData.runReport(runReportRequest);
         }
+    }
 
-        return results;
+    private static void setDimensionFilters(final AnalyticsRequest analyticsRequest,
+                                         final RunReportRequest.Builder requestBuilder) {
+
+        if (analyticsRequest.getDimensionFilterList().size() == 1) {
+
+            final FilterRequest filterRequest = analyticsRequest.getDimensionFilterList().get(0);
+            final FilterExpression filterExpression = getFilterExpression(filterRequest);
+
+            requestBuilder.setDimensionFilter(filterExpression);
+        } else {
+
+            final FilterExpressionList.Builder builder = FilterExpressionList.newBuilder();
+            for (final FilterRequest filterRequest : analyticsRequest.getMetricFilterList()) {
+
+                final FilterExpression filterExpression = getFilterExpression(filterRequest);
+                builder.addExpressions(filterExpression);
+            }
+
+            requestBuilder.setDimensionFilter(FilterExpression.newBuilder().setAndGroup(builder.build()));
+        }
+    }
+
+    private static FilterExpression getFilterExpression(final FilterRequest filterRequest) {
+
+        final Filter.StringFilter.MatchType matchType = Objects.nonNull(filterRequest.getOperator()) ?
+                Filter.StringFilter.MatchType.valueOf(filterRequest.getOperator()) : Filter.StringFilter.MatchType.EXACT;
+        final FilterExpression filterExpression = FilterExpression.newBuilder()
+                .setFilter(Filter.newBuilder()
+                        .setFieldName(filterRequest.getField())
+                        .setStringFilter(Filter.StringFilter.newBuilder()
+                                .setValue(filterRequest.getValue())
+                                .setMatchType(matchType)
+                                .build())
+                        .build())
+                .build();
+        return filterExpression;
+    }
+
+    private static void setMetricFilters(final AnalyticsRequest analyticsRequest,
+                                         final RunReportRequest.Builder requestBuilder) {
+
+        if (analyticsRequest.getMetricFilterList().size() == 1) {
+
+            final FilterRequest filterRequest = analyticsRequest.getMetricFilterList().get(0);
+            final FilterExpression filterExpression = getFilterExpression(filterRequest);
+            requestBuilder.setMetricFilter(filterExpression);
+        } else {
+
+            final FilterExpressionList.Builder builder = FilterExpressionList.newBuilder();
+            for (final FilterRequest filterRequest : analyticsRequest.getMetricFilterList()) {
+
+                final FilterExpression filterExpression = getFilterExpression(filterRequest);
+                builder.addExpressions(filterExpression);
+            }
+
+            requestBuilder.setMetricFilter(FilterExpression.newBuilder().setAndGroup(builder.build()));
+        }
     }
 }

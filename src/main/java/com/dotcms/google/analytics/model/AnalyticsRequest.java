@@ -1,7 +1,9 @@
 package com.dotcms.google.analytics.model;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * A model class for representing a Google Analytics query request.
@@ -29,6 +31,8 @@ public class AnalyticsRequest {
     private final String defaultEndDate = DATE_FORMAT.format(new Date());
 
     // Required parameters
+
+    private String propertyId;
 
     /**
      * The profile ID of the profile from which to request data.
@@ -64,6 +68,8 @@ public class AnalyticsRequest {
      */
     private String segment;
 
+    private List<FilterRequest> metricFilterList = new ArrayList<>();
+    private List<FilterRequest> dimensionFilterList = new ArrayList<>();
     /**
      * Specifies a subset of all data matched in analytics.
      */
@@ -89,12 +95,16 @@ public class AnalyticsRequest {
      *
      * @param newProfileId The Google Analytics profile ID to query against.
      */
-    public AnalyticsRequest(final String newProfileId) {
-        if (newProfileId == null || newProfileId.equals("")) {
-            throw new IllegalArgumentException("profileId cannot be null or empty");
+    public AnalyticsRequest(final String propertyId) {
+        if (propertyId == null || propertyId.equals("")) {
+            throw new IllegalArgumentException("propertyId cannot be null or empty");
         }
 
-        profileId = newProfileId;
+        this.propertyId = propertyId;
+    }
+
+    public String getPropertyId() {
+        return propertyId;
     }
 
     /**
@@ -111,6 +121,7 @@ public class AnalyticsRequest {
      *
      * @return The value of metrics.
      */
+    @Deprecated
     public final String getMetrics() {
         if (metrics != null && !metrics.equals("")) {
             return metrics;
@@ -124,10 +135,38 @@ public class AnalyticsRequest {
      *
      * @param newMetrics The value of metrics.
      */
+    @Deprecated
     public final void setMetrics(final String newMetrics) {
         metrics = newMetrics;
     }
 
+    public void addMetricFilter(final String field, final String operator, final String value) {
+        final FilterRequest filter = new FilterRequest(field, operator, value);
+        metricFilterList.add(filter);
+    }
+
+    public void addMetricFilter(final FilterRequest filter) {
+        metricFilterList.add(filter);
+    }
+
+
+    public List<FilterRequest> getMetricFilterList() {
+        return metricFilterList;
+    }
+
+    public void addDimensionFilter(final String field, final String operator, final String value) {
+        final FilterRequest filter = new FilterRequest(field, operator, value);
+        dimensionFilterList.add(filter);
+    }
+
+    public void addDimensionFilter(final FilterRequest filter) {
+        dimensionFilterList.add(filter);
+    }
+
+
+    public List<FilterRequest> getDimensionFilterList() {
+        return dimensionFilterList;
+    }
     /**
      * Gets the value of the startDate property.
      *
@@ -245,6 +284,7 @@ public class AnalyticsRequest {
     }
 
     /**
+     * @deprecated Use {@link #getPageToken()} instead.
      * Gets the value of the startIndex property.
      *
      * @return The value of startIndex.
@@ -254,6 +294,7 @@ public class AnalyticsRequest {
     }
 
     /**
+     * @deprecated Use {@link #setPageToken()} instead.
      * Sets the value of the startIndex property.
      *
      * @param newStartIndex The value of startIndex.
@@ -279,4 +320,6 @@ public class AnalyticsRequest {
     public final void setMaxResults(final int newMaxResults) {
         maxResults = newMaxResults;
     }
+
+
 }

@@ -7,10 +7,10 @@ import com.dotmarketing.loggers.Log4jUtil;
 import com.dotmarketing.osgi.GenericBundleActivator;
 import com.dotmarketing.util.ConfigUtils;
 import com.dotmarketing.util.Logger;
-import com.google.api.client.util.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.osgi.framework.BundleContext;
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
