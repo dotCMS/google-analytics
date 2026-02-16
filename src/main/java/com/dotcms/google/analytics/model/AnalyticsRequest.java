@@ -16,9 +16,10 @@ public class AnalyticsRequest {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("YYYY-MM-dd");
 
     /**
-     * The default metrics value.
+     * The default metrics value for GA4.
+     * Changed from "ga:visits" (Universal Analytics) to "sessions" (GA4).
      */
-    public static final String DEFAULT_METRICS = "ga:visits";
+    public static final String DEFAULT_METRICS = "sessions";
 
     /**
      * The default start date value.
