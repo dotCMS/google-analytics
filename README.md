@@ -43,7 +43,7 @@ This plugin provides a `$analytics` viewtool in Velocity templates for querying 
 <h2>Last 7 Days Analytics</h2>
 
 ## Your GA4 property ID (just the number)
-#set($propertyId = "488595222")
+#set($propertyId = "123456789")
 
 ## Create and configure request
 #set($gaRequest = $analytics.createAnalyticsRequest($propertyId))
