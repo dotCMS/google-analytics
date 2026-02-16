@@ -1,6 +1,7 @@
 package com.dotcms.google.analytics.osgi;
 
 import com.dotcms.google.analytics.app.AnalyticsAppService;
+import com.dotcms.google.analytics.rest.GoogleAnalyticsResource;
 import com.dotcms.google.analytics.view.AnalyticsToolInfo;
 import com.dotmarketing.business.CacheLocator;
 import com.dotmarketing.loggers.Log4jUtil;
@@ -44,6 +45,9 @@ public class Activator extends GenericBundleActivator {
 
         // copy the yaml
         copyAppYml();
+
+        // Register REST resources
+        publishBundleServices(bundleContext);
 
         // Register all ViewTool services
         registerViewToolService(bundleContext, new AnalyticsToolInfo());
