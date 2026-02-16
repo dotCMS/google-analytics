@@ -72,6 +72,58 @@ $gaRequest.setDimensions("date")
 </table>
 ```
 
+### REST API Usage
+
+Query Google Analytics data via REST endpoint:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/googleanalytics/query \
+  -H "Content-Type: application/json" \
+  -u admin@dotcms.com:admin \
+  -d '{
+    "propertyId": "123456789",
+    "startDate": "2026-02-09",
+    "endDate": "2026-02-16",
+    "metrics": ["sessions", "activeUsers"],
+    "dimensions": ["date", "pagePath"],
+    "filters": {
+      "dimension": [
+        {"field": "pagePath", "value": "/products", "operator": "CONTAINS"}
+      ]
+    },
+    "sort": "sessions",
+    "maxResults": 100
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "rowCount": 7,
+  "dimensions": ["date", "pagePath"],
+  "metrics": ["sessions", "activeUsers"],
+  "rows": [
+    {
+      "date": "20260209",
+      "pagePath": "/products",
+      "sessions": "150",
+      "activeUsers": "120"
+    },
+    {
+      "date": "20260210",
+      "pagePath": "/home",
+      "sessions": "200",
+      "activeUsers": "180"
+    }
+  ],
+  "metadata": {
+    "currencyCode": "USD",
+    "timeZone": "America/New_York"
+  }
+}
+```
+
 ## Documentation
 
 For complete setup instructions including Google Cloud configuration, Google Analytics permissions, advanced usage, and troubleshooting:
@@ -86,16 +138,46 @@ For complete setup instructions including Google Cloud configuration, Google Ana
 - **Troubleshooting** - OSGi issues, metric errors, variable name conflicts
 - **Available Metrics & Dimensions** - GA4 API schema reference
 
-## Available Metrics
+## Understanding Dimensions and Metrics
 
-Common GA4 metrics you can query:
-- `sessions` - Number of sessions
+When querying Google Analytics, you combine **dimensions** and **metrics** to get the data you need:
+
+### Dimensions (What to group by)
+
+Dimensions are categorical attributes that describe your data—they answer "what are we breaking this down by?"
+
+Common dimensions:
+- `date` - When the activity happened (e.g., "20260209")
+- `pagePath` - Which page was viewed (e.g., "/products")
+- `country` - Where users are located (e.g., "United States")
+- `deviceCategory` - Device type (e.g., "desktop", "mobile", "tablet")
+- `browser` - Browser used (e.g., "Chrome", "Safari")
+- `city` - User's city (e.g., "New York")
+- `source` - Traffic source (e.g., "google", "facebook", "direct")
+
+### Metrics (What to measure)
+
+Metrics are the numerical measurements you want to analyze:
+- `sessions` - Number of sessions (visits)
 - `activeUsers` - Number of distinct users
-- `screenPageViews` - Total page and screen views
+- `screenPageViews` - Total page views
 - `bounceRate` - Percentage of single-page sessions
 - `averageSessionDuration` - Average session duration in seconds
 
-See the [GA4 API Schema](https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema) for the full list.
+### Example Query
+
+"Show me sessions and active users, broken down by date and page path"
+
+```json
+{
+  "dimensions": ["date", "pagePath"],
+  "metrics": ["sessions", "activeUsers"]
+}
+```
+
+Each row in the response represents one unique combination of dimension values with its associated metrics.
+
+See the [GA4 API Schema](https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema) for the complete list of available dimensions and metrics.
 
 ## Version History
 

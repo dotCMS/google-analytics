@@ -7,6 +7,8 @@ import com.dotcms.google.analytics.model.FilterRequest;
 import com.dotcms.google.analytics.service.GoogleAnalyticsService;
 import com.dotcms.rest.WebResource;
 import com.dotmarketing.util.Logger;
+import com.google.analytics.data.v1beta.DimensionValue;
+import com.google.analytics.data.v1beta.MetricValue;
 import com.google.analytics.data.v1beta.RunReportResponse;
 import com.liferay.portal.model.User;
 
@@ -149,26 +151,38 @@ public class GoogleAnalyticsResource {
             // Execute query
             final RunReportResponse gaResponse = analyticsService.query(analyticsRequest);
 
+            // Capture field names for flattened response
+            final List<String> dimensionNames = queryRequest.getDimensions();
+            final List<String> metricNames = queryRequest.getMetrics();
+
             // Convert to JSON-friendly format
             final Map<String, Object> responseData = new HashMap<>();
             responseData.put("rowCount", gaResponse.getRowCount());
 
-            // Convert rows to simple structure
-            final List<Map<String, Object>> rows = gaResponse.getRowsList().stream()
+            // Add metadata with dimension and metric names
+            responseData.put("dimensions", dimensionNames != null ? dimensionNames : new ArrayList<>());
+            responseData.put("metrics", metricNames != null ? metricNames : new ArrayList<>());
+
+            // Convert rows to flattened structure with named fields
+            final List<Map<String, String>> rows = gaResponse.getRowsList().stream()
                     .map(row -> {
-                        final Map<String, Object> rowData = new HashMap<>();
+                        final Map<String, String> rowData = new HashMap<>();
 
-                        // Extract dimensions
-                        final List<String> dimensions = row.getDimensionValuesList().stream()
-                                .map(dv -> dv.getValue())
-                                .collect(Collectors.toList());
-                        rowData.put("dimensions", dimensions);
+                        // Map dimension values to names
+                        final List<DimensionValue> dimensionValues = row.getDimensionValuesList();
+                        if (dimensionNames != null) {
+                            for (int i = 0; i < dimensionNames.size() && i < dimensionValues.size(); i++) {
+                                rowData.put(dimensionNames.get(i), dimensionValues.get(i).getValue());
+                            }
+                        }
 
-                        // Extract metrics
-                        final List<String> metrics = row.getMetricValuesList().stream()
-                                .map(mv -> mv.getValue())
-                                .collect(Collectors.toList());
-                        rowData.put("metrics", metrics);
+                        // Map metric values to names
+                        final List<MetricValue> metricValues = row.getMetricValuesList();
+                        if (metricNames != null) {
+                            for (int i = 0; i < metricNames.size() && i < metricValues.size(); i++) {
+                                rowData.put(metricNames.get(i), metricValues.get(i).getValue());
+                            }
+                        }
 
                         return rowData;
                     })
