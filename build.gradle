@@ -59,7 +59,27 @@ jar {
                 'Bundle-ClassPath' : "${classPathLibraries()}",
                 'Import-Package': '''
                     !com.google.*,
-                    *;version=0
+                    !com.aayushatharva.*,
+                    !com.github.luben.*,
+                    !com.jcraft.*,
+                    !com.ning.*,
+                    !io.netty.*,
+                    !io.grpc.*,
+                    !io.perfmark.*,
+                    !io.opencensus.*,
+                    !org.conscrypt.*,
+                    !org.codehaus.*,
+                    !org.checkerframework.*,
+                    !org.threeten.*,
+                    javax.*,
+                    org.osgi.*,
+                    org.apache.commons.io.*,
+                    org.apache.felix.*,
+                    org.apache.logging.log4j.*,
+                    org.apache.velocity.*,
+                    com.dotcms.*,
+                    com.dotmarketing.*,
+                    com.liferay.*
                 '''
         )
     }
