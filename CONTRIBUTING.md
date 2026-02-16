@@ -1,45 +1,13 @@
 # Contributing to Google Analytics Plugin for dotCMS
 
-Thank you for your interest in contributing to the Google Analytics plugin! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing! We welcome pull requests that improve the plugin.
 
-## Code of Conduct
-
-By participating in this project, you agree to abide by the dotCMS [Code of Conduct](https://dotcms.com/code-of-conduct). Please be respectful and constructive in all interactions.
-
-## How Can I Contribute?
-
-### Reporting Bugs
-
-Before creating a bug report:
-- Check the [existing issues](https://github.com/dotCMS/google-analytics/issues) to avoid duplicates
-- Verify you're using the latest version of the plugin
-- Test with a clean dotCMS installation if possible
-
-When creating a bug report, include:
-- **Plugin version** (e.g., 0.4.1)
-- **dotCMS version** (e.g., 23.01.10)
-- **Steps to reproduce** the issue
-- **Expected behavior** vs. **actual behavior**
-- **Error messages** from dotCMS logs
-- **Sample Velocity code** that demonstrates the issue
-
-### Suggesting Enhancements
-
-Enhancement suggestions are welcome! Please include:
-- **Clear use case** - What problem does this solve?
-- **Proposed solution** - How should it work?
-- **Alternatives considered** - What other approaches did you think about?
-- **Impact** - Who benefits from this enhancement?
-
-### Pull Requests
-
-We actively welcome pull requests!
+## Pull Requests
 
 #### Before You Start
 
-1. **Check existing issues/PRs** - Someone might already be working on it
-2. **Open an issue first** for significant changes to discuss the approach
-3. **Keep changes focused** - One feature/fix per PR
+1. **Keep changes focused** - One feature/fix per PR
+2. **Fork the repository** - Work on your own fork
 
 #### Development Setup
 
@@ -181,7 +149,18 @@ This plugin follows [Semantic Versioning](https://semver.org/):
 - **Minor (0.X.0)**: New features, backward compatible
 - **Patch (0.0.X)**: Bug fixes, backward compatible
 
-Version is managed in `build.gradle`. Don't change it in your PR unless coordinating with maintainers.
+**IMPORTANT:** Bump the version in `build.gradle` for each PR that should trigger a new release:
+
+```gradle
+version = '0.4.2'  // Increment for your changes
+```
+
+When merged to main, GitHub Actions will:
+1. Check if release `v0.4.2` exists
+2. If not, build the JAR and create the release
+3. If yes, skip release creation (no duplicates)
+
+**Always bump the version** to ensure your changes are trackable in releases.
 
 ## Release Process
 
@@ -197,7 +176,6 @@ Only maintainers can merge to `main` and trigger releases.
 ## Questions?
 
 - **General questions**: [dotCMS Community Forums](https://dotcms.com/forums)
-- **Plugin-specific**: [Open an issue](https://github.com/dotCMS/google-analytics/issues)
 - **dotCMS development**: [dotCMS Developer Docs](https://dotcms.com/docs)
 
 ## License
