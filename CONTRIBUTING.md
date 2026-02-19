@@ -136,7 +136,7 @@ Before submitting a PR, verify:
 - [ ] Plugin builds without errors: `./gradlew clean jar`
 - [ ] JAR uploads successfully to dotCMS
 - [ ] OSGi bundle starts without errors (check logs for "Starting Google Analytics OSGI plugin")
-- [ ] Viewtool is available in Velocity (`$analytics`)
+- [ ] Viewtool is available in Velocity (`$googleanalytics`)
 - [ ] Can create analytics request and query GA4 data
 - [ ] No breaking changes to existing Velocity code (or documented if necessary)
 - [ ] Works with dotCMS 23.01.10 and newer

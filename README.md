@@ -6,7 +6,7 @@ OSGi plugin that integrates Google Analytics 4 (GA4) Data API with dotCMS, enabl
 
 ## What It Does
 
-This plugin provides a `$analytics` viewtool in Velocity templates for querying Google Analytics 4 data directly from your dotCMS pages. Retrieve metrics like sessions, active users, page views, and more—filtered by dimensions like date, page path, device category, etc.
+This plugin provides a `$googleanalytics` viewtool in Velocity templates for querying Google Analytics 4 data directly from your dotCMS pages. Retrieve metrics like sessions, active users, page views, and more—filtered by dimensions like date, page path, device category, etc.
 
 **Note:** This plugin *fetches* analytics data from Google Analytics. It does NOT add tracking code to your site.
 
@@ -46,14 +46,14 @@ This plugin provides a `$analytics` viewtool in Velocity templates for querying 
 #set($propertyId = "123456789")
 
 ## Create and configure request
-#set($gaRequest = $analytics.createAnalyticsRequest($propertyId))
+#set($gaRequest = $googleanalytics.createAnalyticsRequest($propertyId))
 $gaRequest.setStartDate("2026-02-09")
 $gaRequest.setEndDate("2026-02-16")
 $gaRequest.setMetrics("sessions,activeUsers")
 $gaRequest.setDimensions("date")
 
 ## Execute query
-#set($gaResponse = $analytics.query($gaRequest))
+#set($gaResponse = $googleanalytics.query($gaRequest))
 
 ## Display results
 <table>
