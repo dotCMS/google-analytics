@@ -1,11 +1,12 @@
 package com.dotcms.google.analytics.rest;
 
-import com.dotcms.google.analytics.app.AnalyticsApp;
 import com.dotcms.google.analytics.app.AnalyticsAppService;
 import com.dotcms.google.analytics.model.AnalyticsRequest;
 import com.dotcms.google.analytics.model.FilterRequest;
 import com.dotcms.google.analytics.service.GoogleAnalyticsService;
 import com.dotcms.rest.WebResource;
+import com.dotmarketing.beans.Host;
+import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.util.Logger;
 import com.google.analytics.data.v1beta.DimensionValue;
 import com.google.analytics.data.v1beta.MetricValue;
@@ -14,6 +15,7 @@ import com.liferay.portal.model.User;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,7 @@ public class GoogleAnalyticsResource {
 
     private final WebResource webResource = new WebResource();
     private final AnalyticsAppService analyticsAppService = new AnalyticsAppService();
+    private final Map<String, GoogleAnalyticsService> googleAnalyticsServiceMap = new ConcurrentHashMap<>();
 
     /**
      * Query Google Analytics 4 data via REST API.
@@ -58,6 +62,7 @@ public class GoogleAnalyticsResource {
      */
     @POST
     @Path("/query")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response query(
             @Context final HttpServletRequest request,
@@ -65,6 +70,13 @@ public class GoogleAnalyticsResource {
             final GoogleAnalyticsQueryRequest queryRequest) {
 
         try {
+            // Validate request body
+            if (queryRequest == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "Request body is required"))
+                        .build();
+            }
+
             // Authenticate user
             final User user = new WebResource.InitBuilder(webResource)
                     .requiredBackendUser(true)
@@ -84,12 +96,19 @@ public class GoogleAnalyticsResource {
             }
 
             // Get analytics app configuration for current site
-            final String siteId = request.getServerName(); // Or extract from request
-            final AnalyticsApp analyticsApp = analyticsAppService.getAnalyticsApp(siteId);
+            final Host currentHost = WebAPILocator.getHostWebAPI().getHost(request);
+            final String siteId = currentHost.getIdentifier();
 
-            // Create Google Analytics service
+            // Get or create cached Google Analytics service
             final GoogleAnalyticsService analyticsService =
-                    new GoogleAnalyticsService(analyticsApp.getJsonKeyFile());
+                    this.googleAnalyticsServiceMap.computeIfAbsent(siteId, key -> {
+                        try {
+                            final AnalyticsApp analyticsApp = analyticsAppService.getAnalyticsApp(siteId);
+                            return new GoogleAnalyticsService(analyticsApp.getJsonKeyFile());
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
 
             // Build analytics request
             final AnalyticsRequest analyticsRequest =
@@ -203,7 +222,7 @@ public class GoogleAnalyticsResource {
         } catch (Exception e) {
             Logger.error(this, "Error querying Google Analytics", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", e.getMessage()))
+                    .entity(Map.of("error", "Error querying Google Analytics"))
                     .build();
         }
     }
