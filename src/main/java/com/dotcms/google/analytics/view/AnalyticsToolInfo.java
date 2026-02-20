@@ -11,7 +11,7 @@ public class AnalyticsToolInfo extends ServletToolInfo {
 
     @Override
     public final String getKey() {
-        return "analytics";
+        return "googleanalytics";
     }
 
     @Override
