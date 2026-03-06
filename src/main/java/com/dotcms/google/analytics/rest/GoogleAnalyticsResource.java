@@ -1,5 +1,6 @@
 package com.dotcms.google.analytics.rest;
 
+import com.dotcms.google.analytics.app.AnalyticsApp;
 import com.dotcms.google.analytics.app.AnalyticsAppService;
 import com.dotcms.google.analytics.model.AnalyticsRequest;
 import com.dotcms.google.analytics.model.FilterRequest;
